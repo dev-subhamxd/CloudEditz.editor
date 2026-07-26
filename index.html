@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudEditz — Video editing, in the browser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0c10;
+    --bg-raised:#12151b;
+    --hairline:#22262e;
+    --white:#f4f6f8;
+    --muted:#8b93a1;
+    --muted-2:#565d68;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--white);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed;inset:0;
+    background:
+      radial-gradient(ellipse 60% 40% at 15% 0%, rgba(45,212,191,0.07), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 100% 20%, rgba(167,139,250,0.06), transparent 60%);
+    pointer-events:none;
+    z-index:0;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px;position:relative;z-index:1;}
+
+  /* ---------- Header / brand strip ---------- */
+  header{
+    padding:28px 0 0;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;font-size:19px;letter-spacing:0.01em;
+  }
+  .brand .dot{
+    width:9px;height:9px;border-radius:50%;
+    background:#2DD4BF;
+    box-shadow:0 0 12px 2px rgba(45,212,191,0.7);
+    animation:pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:.45;transform:scale(0.8);}
+  }
+  .brand span.tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:400;font-size:11px;color:var(--muted-2);
+    letter-spacing:0.08em;text-transform:uppercase;
+    border:1px solid var(--hairline);
+    padding:3px 8px;border-radius:20px;
+    margin-left:4px;
+  }
+
+  /* ---------- Timecode scrub bar (signature element) ---------- */
+  .scrubber{
+    margin-top:38px;
+    height:34px;
+    display:flex;align-items:center;gap:0;
+    border-top:1px solid var(--hairline);
+    border-bottom:1px solid var(--hairline);
+    position:relative;
+    overflow:hidden;
+  }
+  .scrubber .ticks{
+    display:flex;width:100%;height:100%;
+  }
+  .scrubber .tick{
+    flex:1;border-right:1px solid var(--hairline);
+    height:100%;
+  }
+  .scrubber .tick:nth-child(4n) { background:rgba(255,255,255,0.015); }
+  .playhead{
+    position:absolute;top:0;bottom:0;width:2px;
+    background:#2DD4BF;
+    box-shadow:0 0 10px 1px rgba(45,212,191,0.8);
+    left:0%;
+    animation:scrub 9s linear infinite;
+  }
+  .playhead::before{
+    content:"";position:absolute;top:-1px;left:-4px;
+    width:10px;height:10px;
+    background:#2DD4BF;
+    clip-path:polygon(50% 100%, 0 0, 100% 0);
+  }
+  @keyframes scrub{
+    0%{left:0%;}
+    100%{left:100%;}
+  }
+
+  /* ---------- About / Hero ---------- */
+  .about{
+    padding:76px 0 64px;
+    border-bottom:1px solid var(--hairline);
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:0.12em;text-transform:uppercase;
+    color:#2DD4BF;
+    display:flex;align-items:center;gap:10px;
+    margin-bottom:22px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:16px;height:1px;background:#2DD4BF;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:clamp(34px, 5.4vw, 58px);
+    line-height:1.06;
+    letter-spacing:-0.01em;
+    max-width:15ch;
+  }
+  h1 em{
+    font-style:normal;
+    background:linear-gradient(90deg,#2DD4BF,#A78BFA);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .about p.lead{
+    margin-top:22px;
+    font-size:17px;line-height:1.65;
+    color:var(--muted);
+    max-width:56ch;
+  }
+  .status-row{
+    margin-top:32px;
+    display:flex;flex-wrap:wrap;gap:10px 28px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;color:var(--muted-2);
+  }
+  .status-row .item{display:flex;align-items:center;gap:7px;}
+  .status-row .item b{color:var(--white);font-weight:500;}
+  .status-row .amber{color:#FBBF24;}
+  .status-row .amber-dot{
+    width:6px;height:6px;border-radius:50%;background:#FBBF24;
+  }
+
+  /* ---------- Cards section ---------- */
+  .cards-section{padding:56px 0 90px;}
+  .cards-heading{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:28px;flex-wrap:wrap;gap:8px;
+  }
+  .cards-heading h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;font-size:22px;
+  }
+  .cards-heading span{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;color:var(--muted-2);
+  }
+  .card-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:16px;
+  }
+  @media (max-width:860px){
+    .card-grid{grid-template-columns:repeat(2, 1fr);}
+  }
+  @media (max-width:600px){
+    .card-grid{grid-template-columns:1fr;}
+  }
+  .card{
+    display:block;
+    text-decoration:none;
+    background:var(--bg-raised);
+    border-radius:10px;
+    padding:22px 20px 20px;
+    position:relative;
+    border-top:1px solid var(--hairline);
+    border-right:1px solid var(--hairline);
+    border-bottom:1px solid var(--hairline);
+    border-left:3px solid var(--card-color, #2DD4BF);
+    transition:transform .22s ease, background .22s ease, border-color .22s ease;
+  }
+  .card:hover{
+    transform:translateY(-3px);
+    background:#171b22;
+  }
+  .card:focus-visible{
+    outline:2px solid var(--card-color, #2DD4BF);
+    outline-offset:3px;
+  }
+  .card .icon{
+    width:50px;height:50px;
+    border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;
+    background:color-mix(in srgb, var(--card-color, #2DD4BF) 16%, transparent);
+    margin-bottom:16px;
+  }
+  .card .icon img{width:28px;height:28px;object-fit:contain;}
+  .card h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;font-size:16.5px;
+    color:var(--white);
+    margin-bottom:8px;
+  }
+  .card p.desc{
+    font-size:13.5px;line-height:1.55;
+    color:var(--white);
+    opacity:0.68;
+    margin-bottom:18px;
+  }
+  .card .link-row{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;font-weight:500;
+    color:var(--card-color, #2DD4BF);
+    display:flex;align-items:center;gap:6px;
+  }
+  .card .link-row .arrow{transition:transform .2s ease;}
+  .card:hover .link-row .arrow{transform:translateX(3px);}
+
+  footer{
+    border-top:1px solid var(--hairline);
+    padding:26px 0 40px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;color:var(--muted-2);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .playhead, .brand .dot{animation:none;}
+  }
+
+  /* ---------- Sign-in gate ---------- */
+  #gate{
+    min-height:80vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:60px 0;
+  }
+  #gate .panel{width:100%;max-width:400px;}
+  #gate .card{
+    background:var(--bg-raised);border:1px solid var(--hairline);
+    border-radius:12px;padding:26px 22px 28px;
+  }
+  #gate .card h1{
+    font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;
+    margin-bottom:6px;
+  }
+  #gate .card .sub{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--muted);font-size:12.5px;margin-bottom:22px;
+  }
+  #gate .field{margin-bottom:18px;}
+  #gate .field label{
+    display:block;font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:9px;
+  }
+  #gate .field input{
+    width:100%;background:#0d1015;border:1px solid var(--hairline);
+    border-radius:8px;padding:13px 14px;color:var(--white);
+    font-family:'IBM Plex Mono',monospace;font-size:14px;
+    outline:none;transition:border-color .15s ease;
+  }
+  #gate .field input:focus{border-color:#2DD4BF;}
+  #gate .password-wrap{position:relative;}
+  #gate .password-wrap input{padding-right:44px;}
+  #gate .toggle-pw{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+    background:none;border:none;border-radius:7px;cursor:pointer;color:var(--muted-2);
+    transition:color .15s ease,background .15s ease;
+  }
+  #gate .toggle-pw:hover{color:#2DD4BF;background:rgba(45,212,191,0.08);}
+  #gate .toggle-pw svg{width:17px;height:17px;}
+  #gate .toggle-pw .eye-off{display:none;}
+  #gate .toggle-pw.showing .eye{display:none;}
+  #gate .toggle-pw.showing .eye-off{display:block;}
+  #gate button.btn{
+    width:100%;padding:14px 0;border-radius:8px;border:none;
+    background:linear-gradient(90deg,#2DD4BF,#34d399);color:#052018;
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:14px;
+    cursor:pointer;transition:transform .12s ease, filter .12s ease;
+  }
+  #gate button.btn:hover{filter:brightness(1.08);}
+  #gate button.btn:active{transform:scale(0.98);}
+  #gate button.btn[disabled]{opacity:.5;cursor:not-allowed;}
+  #gate .msg{
+    margin-top:16px;padding:12px 14px;border-radius:8px;
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.5;display:none;
+  }
+  #gate .msg.show{display:block;}
+  #gate .msg.err{background:rgba(251,113,133,0.08);border:1px solid rgba(251,113,133,0.35);color:#fb7185;}
+
+  .status-pill{
+    display:flex;align-items:center;gap:7px;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);
+    border:1px solid var(--hairline);border-radius:20px;padding:6px 12px;
+  }
+  .status-pill .sdot{width:6px;height:6px;border-radius:50%;background:var(--muted-2);}
+  .status-pill.on .sdot{background:#34d399;box-shadow:0 0 8px 1px rgba(52,211,153,.7);}
+  .status-pill.on{color:#34d399;}
+  .header-row{
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .signout-link{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);
+    background:none;border:1px solid var(--hairline);border-radius:20px;
+    padding:6px 14px;cursor:pointer;transition:color .15s ease,border-color .15s ease;
+  }
+  .signout-link:hover{color:#fb7185;border-color:#fb7185;}
+  #site{display:none;}
+
+</style>
+</head>
+<body>
+
+<!-- ===================== SIGN-IN GATE ===================== -->
+<div class="wrap" id="gate">
+  <div class="panel">
+    <div class="header-row" style="margin-bottom:26px;">
+      <div class="brand"><span class="dot"></span>CloudEditz</div>
+      <div class="status-pill" id="statusPill"><span class="sdot"></span><span id="statusText">connecting…</span></div>
+    </div>
+    <div class="card">
+      <h1>Sign in</h1>
+      <div class="sub">Accounts are created directly in the database. There's no sign-up here.</div>
+      <form id="signinForm">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="si-username" autocomplete="username" required>
+        </div>
+        <div class="field password-wrap">
+          <label>Password</label>
+          <input type="password" id="si-password" autocomplete="current-password" required>
+          <button type="button" class="toggle-pw" id="togglePw" aria-label="Show password">
+            <svg class="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"/>
+              <circle cx="12" cy="12" r="3.2"/>
+            </svg>
+            <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3l18 18"/>
+              <path d="M10.6 5.2A10.9 10.9 0 0 1 12 5c7 0 10.5 7 10.5 7a13.4 13.4 0 0 1-3.1 3.9M6.6 6.6C3.4 8.5 1.5 12 1.5 12s3.5 7 10.5 7a10.4 10.4 0 0 0 4.9-1.2"/>
+              <path d="M9.9 9.9a3.2 3.2 0 0 0 4.2 4.2"/>
+            </svg>
+          </button>
+        </div>
+        <button class="btn" type="submit" id="si-btn">Sign in</button>
+        <div class="msg" id="si-msg"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== HOMEPAGE (shown after sign-in) ===================== -->
+<div class="wrap" id="site">
+  <header>
+    <div class="header-row">
+      <div class="brand">
+        <span class="dot"></span>
+        CloudEditz
+        <span class="tag">Web Editor</span>
+      </div>
+      <button class="signout-link" id="signOutBtn">Sign out</button>
+    </div>
+  </header>
+
+
+  <div class="scrubber">
+    <div class="ticks" id="ticks"></div>
+    <div class="playhead"></div>
+  </div>
+
+  <!-- ===================== ABOUT ===================== -->
+  <section class="about">
+    <div class="eyebrow">00:00:00:00 — About CloudEditz</div>
+    <h1>Cut, grade, and export video <em>without leaving your tab.</em></h1>
+    <p class="lead">
+      CloudEditz is a video editor built entirely for the browser — a real timeline, multi-track
+      editing, transitions, and export, with nothing to install and nothing to render locally.
+      We're building it in the open, one frame at a time, aiming to be the best free video
+      editor the web has seen.
+    </p>
+    <div class="status-row">
+      <div class="item"><span class="amber-dot"></span> <span class="amber">In development</span></div>
+      <div class="item">Build <b>0.1.0-pre</b></div>
+      <div class="item">Runs on <b>Chrome · Firefox · Edge</b></div>
+      <div class="item">Cost <b>Free while in beta</b></div>
+    </div>
+  </section>
+
+  <!-- ===================== CARDS ===================== -->
+  <section class="cards-section">
+    <div class="cards-heading">
+      <h2>Start here</h2>
+      <span id="card-count">// 00 links</span>
+    </div>
+    <div class="card-grid" id="card-grid"></div>
+  </section>
+
+  <footer>
+    <span>© 2026 CloudEditz</span>
+    <span>Built for people who edit in tabs, not timelines of software installs.</span>
+  </footer>
+</div>
+
+<script>
+/* =========================================================================
+   SIGN-IN GATE — accounts are created manually in the DB under this path.
+   Each record needs at least: { "Username": "...", "ID": "...", "Password": "..." }
+   ========================================================================= */
+const DB_URL = "https://star-community-orv-dokaebi-default-rtdb.asia-southeast1.firebasedatabase.app";
+const USERS_PATH = "CloudEditz/Users";
+
+function getDeviceId(){
+  let id = localStorage.getItem("cloudeditz_device_id");
+  if(!id){
+    id = (crypto.randomUUID ? crypto.randomUUID() : (Date.now()+"-"+Math.random().toString(16).slice(2)));
+    localStorage.setItem("cloudeditz_device_id", id);
+  }
+  return id;
+}
+
+async function fetchAllUsers(){
+  const res = await fetch(`${DB_URL}/${USERS_PATH}.json`);
+  if(!res.ok) throw new Error("Could not reach the database.");
+  const data = await res.json();
+  return data || {};
+}
+
+async function patchUser(key, partial){
+  const res = await fetch(`${DB_URL}/${USERS_PATH}/${key}.json`, {
+    method: "PATCH",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(partial)
+  });
+  if(!res.ok) throw new Error("Could not update the database.");
+  return res.json();
+}
+
+function showMsg(el, text){
+  el.textContent = text;
+  el.className = "msg show err";
+}
+
+(async function checkConnection(){
+  const pill = document.getElementById("statusPill");
+  const text = document.getElementById("statusText");
+  try{
+    await fetchAllUsers();
+    pill.classList.add("on");
+    text.textContent = "connected";
+  }catch(e){
+    text.textContent = "offline";
+  }
+})();
+
+document.getElementById("togglePw").addEventListener("click", (e) => {
+  const btn = e.currentTarget;
+  const pwInput = document.getElementById("si-password");
+  const showing = pwInput.type === "text";
+  pwInput.type = showing ? "password" : "text";
+  btn.classList.toggle("showing", !showing);
+  btn.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+});
+
+document.getElementById("signinForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const msg = document.getElementById("si-msg");
+  const btn = document.getElementById("si-btn");
+  const username = document.getElementById("si-username").value.trim();
+  const password = document.getElementById("si-password").value;
+
+  btn.disabled = true; btn.textContent = "Signing in…";
+  try{
+    const users = await fetchAllUsers();
+    const entry = Object.entries(users).find(
+      ([,u]) => u && u.Username && u.Username.toLowerCase() === username.toLowerCase()
+    );
+    if(!entry){
+      showMsg(msg, "No account with that username.");
+      btn.disabled = false; btn.textContent = "Sign in";
+      return;
+    }
+    const [key, user] = entry;
+    if(password !== user.Password){
+      showMsg(msg, "Wrong password.");
+      btn.disabled = false; btn.textContent = "Sign in";
+      return;
+    }
+
+    const deviceId = getDeviceId();
+    if(user.BoundDevice && user.BoundDevice !== deviceId){
+      showMsg(msg, "This account is already signed in on another browser.");
+      btn.disabled = false; btn.textContent = "Sign in";
+      return;
+    }
+    if(!user.BoundDevice){
+      await patchUser(key, { BoundDevice: deviceId });
+    }
+
+    localStorage.setItem("cloudeditz_session", JSON.stringify({ Username: user.Username, ID: user.ID || "—", key }));
+    enterSite();
+  }catch(err){
+    showMsg(msg, err.message || "Something went wrong.");
+  }
+  btn.disabled = false; btn.textContent = "Sign in";
+});
+
+document.getElementById("signOutBtn").addEventListener("click", ()=>{
+  localStorage.removeItem("cloudeditz_session");
+  document.getElementById("site").style.display = "none";
+  document.getElementById("gate").style.display = "flex";
+  document.getElementById("signinForm").reset();
+});
+
+function enterSite(){
+  document.getElementById("gate").style.display = "none";
+  document.getElementById("site").style.display = "block";
+}
+
+/* resume session on load, otherwise the gate (already visible) stays up */
+(function resume(){
+  const raw = localStorage.getItem("cloudeditz_session");
+  if(raw){
+    try{ JSON.parse(raw); enterSite(); }catch(e){}
+  }
+})();
+</script>
+
+<script>
+/* =========================================================================
+   CARD DATA — edit this array to add, remove, or change link cards.
+   Each card:
+     icon        : emoji string OR an image URL (rendered at 50x50)
+     name        : card title (rendered in white)
+     link        : href the card points to
+     description : short description (rendered in white)
+     borderColor : hex color used for the card's left border + icon tint
+     linkColor   : hex color used for the "view" link text/arrow
+   ========================================================================= */
+const cards = [
+  {
+    icon: `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M20.32 4.37a19.8 19.8 0 0 0-4.89-1.52.07.07 0 0 0-.08.04c-.21.38-.45.87-.61 1.26a18.3 18.3 0 0 0-5.48 0 12.6 12.6 0 0 0-.62-1.26.08.08 0 0 0-.08-.04c-1.7.29-3.36.8-4.89 1.52a.07.07 0 0 0-.03.03C.53 9.05-.32 13.58.1 18.06a.08.08 0 0 0 .03.06 19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.3 1.23-2a.08.08 0 0 0-.04-.11 13.1 13.1 0 0 1-1.87-.89.08.08 0 0 1 0-.13c.13-.09.25-.19.37-.28a.08.08 0 0 1 .08-.01c3.93 1.79 8.18 1.79 12.06 0a.07.07 0 0 1 .08.01c.12.1.24.19.37.28a.08.08 0 0 1 0 .13c-.6.35-1.22.65-1.87.89a.08.08 0 0 0-.04.11c.36.7.78 1.37 1.23 2a.08.08 0 0 0 .08.03 19.8 19.8 0 0 0 6-3.03.08.08 0 0 0 .03-.06c.5-5.18-.84-9.67-3.55-13.66a.06.06 0 0 0-.03-.03ZM8.02 15.33c-1.18 0-2.16-1.08-2.16-2.42 0-1.33.96-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.96 2.42-2.16 2.42Zm7.97 0c-1.18 0-2.16-1.08-2.16-2.42 0-1.33.96-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.34-.95 2.42-2.16 2.42Z"/></svg>`,
+    name: "Discord",
+    link: "https://discord.com/users/978988982375415808",
+    description: "Message me directly on Discord — questions, feedback, or just to say hi.",
+    borderColor: "#5865F2",
+    linkColor: "#5865F2"
+  }
+];
+
+function isUrl(str){
+  return /^https?:\/\//i.test(str) || /\.(png|jpe?g|svg|webp|gif)$/i.test(str);
+}
+
+function renderCards(list){
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = '';
+  list.forEach(c => {
+    const a = document.createElement('a');
+    a.href = c.link;
+    a.className = 'card';
+    a.style.setProperty('--card-color', c.borderColor);
+
+    const iconInner = isUrl(c.icon)
+      ? `<img src="${c.icon}" alt="${c.name} icon">`
+      : c.icon; // emoji, or raw SVG/HTML markup — both render fine via innerHTML below
+
+    a.innerHTML = `
+      <div class="icon">${iconInner}</div>
+      <h3>${c.name}</h3>
+      <p class="desc">${c.description}</p>
+      <div class="link-row" style="color:${c.linkColor}">
+        View <span class="arrow">→</span>
+      </div>
+    `;
+    grid.appendChild(a);
+  });
+  document.getElementById('card-count').textContent =
+    `// ${String(list.length).padStart(2,'0')} link${list.length === 1 ? '' : 's'}`;
+}
+
+renderCards(cards);
+
+// build the tick marks in the scrub bar
+const ticksEl = document.getElementById('ticks');
+for(let i=0;i<48;i++){
+  const t = document.createElement('div');
+  t.className = 'tick';
+  ticksEl.appendChild(t);
+}
+</script>
+
+</body>
+</html>
