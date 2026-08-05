@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Split-Screen Layout Builder — CloudEditz Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0B0D; --bg-panel:#15171B; --bg-panel-2:#1C1F24; --line:#282C33;
+    --text:#ECEAE4; --muted:#8A8F98; --accent:#FF4A3D; --safe:#6BFF8B;
+    --mono:'IBM Plex Mono',monospace; --display:'Space Grotesk',sans-serif; --body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);}
+  a{color:inherit;}
+  header.suite-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,11,13,.92);backdrop-filter:blur(8px);z-index:50;flex-wrap:wrap;}
+  .brand{font-family:var(--display);font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:10px;font-size:15px;text-decoration:none;}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  nav.reel{display:flex;gap:4px;font-family:var(--mono);font-size:11px;flex-wrap:wrap;}
+  nav.reel a{padding:6px 10px;border-radius:4px;color:var(--muted);text-decoration:none;border:1px solid transparent;white-space:nowrap;}
+  nav.reel a:hover{color:var(--text);border-color:var(--line);background:var(--bg-panel);}
+  nav.reel a.active{color:var(--safe);border-color:var(--line);background:var(--bg-panel);}
+  main{max-width:1180px;margin:0 auto;padding:36px 28px 10px;}
+  .eyebrow{font-family:var(--mono);color:var(--safe);font-size:12px;letter-spacing:.15em;text-transform:uppercase;}
+  h1{font-family:var(--display);font-size:clamp(26px,4vw,40px);margin:6px 0 10px;line-height:1.1;}
+  .sub{color:var(--muted);max-width:62ch;line-height:1.6;margin-bottom:32px;font-size:14.5px;}
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start;}
+  @media (max-width:860px){.stage{grid-template-columns:1fr;}}
+  .viewport-wrap{position:sticky; top:80px;}
+  @media (max-width:860px){.viewport-wrap{position:static;}}
+  .viewport{position:relative;border-radius:3px;overflow:hidden;background:#000;
+    aspect-ratio:9/16; max-width:340px; margin:0 auto; border:1px solid var(--line);}
+  .viewport canvas{width:100%;height:100%;display:block;}
+  .frame-corners span{position:absolute;width:20px;height:20px;border-color:var(--safe);pointer-events:none;}
+  .frame-corners span:nth-child(1){top:8px;left:8px;border-top:2px solid;border-left:2px solid;}
+  .frame-corners span:nth-child(2){top:8px;right:8px;border-top:2px solid;border-right:2px solid;}
+  .frame-corners span:nth-child(3){bottom:8px;left:8px;border-bottom:2px solid;border-left:2px solid;}
+  .frame-corners span:nth-child(4){bottom:8px;right:8px;border-bottom:2px solid;border-right:2px solid;}
+  .rec-badge{position:absolute;top:10px;right:10px;display:none;align-items:center;gap:6px;background:rgba(0,0,0,.55);padding:5px 9px;border-radius:20px;font-family:var(--mono);font-size:10.5px;color:var(--accent);}
+  .rec-badge.on{display:flex;}
+  .rec-badge i{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1s infinite;}
+  .readout{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:10px;padding:0 2px;}
+  .readout .safe{color:var(--safe);}
+  .panel{background:var(--bg-panel);border:1px solid var(--line);border-radius:6px;padding:20px;}
+  .control-group{margin-bottom:20px;}
+  .control-group:last-child{margin-bottom:0;}
+  label.ctl-label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;}
+  label.ctl-label b{color:var(--text);font-weight:500;}
+  input[type=range]{width:100%;accent-color:var(--accent);}
+  select{background:var(--bg-panel-2);border:1px solid var(--line);color:var(--text);border-radius:4px;padding:8px 10px;font-family:var(--body);width:100%;font-size:13px;}
+  .pill-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .pill{flex:1;min-width:70px;text-align:center;padding:9px 8px;border:1px solid var(--line);border-radius:20px;font-family:var(--mono);font-size:11.5px;cursor:pointer;color:var(--muted);background:var(--bg-panel-2);transition:.15s;}
+  .pill:hover{color:var(--text);}
+  .pill.active{border-color:var(--safe);color:var(--safe);background:rgba(107,255,139,.08);}
+  .slot{display:flex;align-items:center;gap:10px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:4px;padding:8px 10px;margin-bottom:8px;}
+  .slot .num{font-family:var(--mono);color:var(--safe);font-size:11px;width:16px;}
+  .slot input[type=file]{flex:1;font-size:11px;color:var(--muted);}
+  .slot .clear{cursor:pointer;color:var(--muted);font-size:14px;}
+  .slot .clear:hover{color:var(--accent);}
+  .btn{width:100%;background:var(--accent);color:#fff;border:none;padding:12px 16px;border-radius:4px;font-family:var(--display);font-weight:700;font-size:13.5px;cursor:pointer;letter-spacing:.02em;}
+  .btn:hover{filter:brightness(1.08);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn.secondary{background:transparent;border:1px solid var(--line);color:var(--text);margin-top:10px;}
+  .btn.secondary:hover{border-color:var(--safe);color:var(--safe);}
+  .btn.small{width:auto;padding:7px 12px;font-size:11.5px;margin-top:8px;}
+  .note{font-family:var(--mono);font-size:10.5px;color:var(--muted);line-height:1.6;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  footer{font-family:var(--mono);font-size:11px;color:var(--muted);padding:26px 28px 40px;border-top:1px solid var(--line);margin-top:44px;max-width:1180px;margin-left:auto;margin-right:auto;}
+  .progress{height:3px;background:var(--bg-panel-2);border-radius:2px;overflow:hidden;margin-top:10px;}
+  .progress i{display:block;height:100%;width:0%;background:var(--safe);transition:width .1s linear;}
+</style>
+</head>
+<body>
+
+<header class="suite-bar">
+  <a class="brand" href="index.html"><span class="dot"></span> CLOUDEDITZ TOOLS</a>
+  <nav class="reel">
+    <a href="grid-safe-zone-watermark-generator.html">01 Safe-Zone Grid</a>
+    <a href="auto-aspect-canvas-padder.html">02 Aspect Padder</a>
+    <a class="active" href="split-screen-layout-builder.html">03 Split-Screen</a>
+    <a href="cinematic-letterbox-overlay.html">04 Letterbox</a>
+    <a href="frame-exact-watermarking-tool.html">05 Watermark</a>
+  </nav>
+</header>
+
+<main>
+  <div class="eyebrow">Tool 03 / 05 — Multi-Clip Layout</div>
+  <h1>Split-Screen Layout Builder</h1>
+  <p class="sub">Load 2–4 clips or images, drop them into a grid template, and export one combined vertical file. Videos play back in sync; audio from every clip is mixed into the export.</p>
+
+  <div class="stage">
+    <div class="viewport-wrap">
+      <div class="viewport" id="viewport">
+        <canvas id="previewCanvas" width="1080" height="1920"></canvas>
+        <div class="frame-corners"><span></span><span></span><span></span><span></span></div>
+        <div class="rec-badge" id="recBadge"><i></i> REC <span id="recTime">0:00</span></div>
+      </div>
+      <div class="readout">
+        <span>1080 × 1920 · 9:16</span>
+        <span class="safe" id="layoutReadout">2-UP SIDE BY SIDE</span>
+      </div>
+      <div class="progress"><i id="progressBar"></i></div>
+    </div>
+
+    <div class="panel">
+      <div class="control-group">
+        <label class="ctl-label">Clips (2–4)</label>
+        <div id="slots"></div>
+      </div>
+
+      <div class="control-group">
+        <label class="ctl-label">Layout template</label>
+        <div class="pill-group" id="layoutPills"></div>
+      </div>
+
+      <div class="control-group">
+        <label class="ctl-label">Divider gap <b id="gapVal">6px</b></label>
+        <input type="range" id="gapSlider" min="0" max="24" value="6">
+      </div>
+
+      <button class="btn secondary" id="playBtn" disabled>▶ Play preview</button>
+      <button class="btn" id="exportBtn" disabled style="margin-top:10px;">Export split-screen WebM</button>
+
+      <div class="note" id="statusNote">Load at least 2 clips to preview a layout. Images are treated as static, full-duration cells.</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  All compositing happens on-canvas in your browser. Audio from every loaded video is mixed live via the Web Audio API before export — no files are uploaded anywhere.
+</footer>
+
+<script>
+const canvas = document.getElementById('previewCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const MAX_SLOTS = 4;
+const slots = []; // { el: <video|img>, type, loaded, url }
+
+const LAYOUT_OPTIONS = {
+  2: [
+    { id:'2h', label:'Side by side', cells:[[0,0,.5,1],[.5,0,.5,1]] },
+    { id:'2v', label:'Stacked', cells:[[0,0,1,.5],[0,.5,1,.5]] },
+  ],
+  3: [
+    { id:'3big', label:'Big + 2 stacked', cells:[[0,0,.62,1],[.62,0,.38,.5],[.62,.5,.38,.5]] },
+    { id:'3v', label:'3 stacked', cells:[[0,0,1,1/3],[0,1/3,1,1/3],[0,2/3,1,1/3]] },
+  ],
+  4: [
+    { id:'2x2', label:'2×2 grid', cells:[[0,0,.5,.5],[.5,0,.5,.5],[0,.5,.5,.5],[.5,.5,.5,.5]] },
+    { id:'4v', label:'4 stacked', cells:[[0,0,1,.25],[0,.25,1,.25],[0,.5,1,.25],[0,.75,1,.25]] },
+  ]
+};
+
+let currentLayout = null;
+let gap = 6;
+let audioCtx = null;
+let mixDest = null;
+
+function buildSlots(){
+  const wrap = document.getElementById('slots');
+  wrap.innerHTML = '';
+  for(let i=0;i<MAX_SLOTS;i++){
+    const row = document.createElement('div');
+    row.className = 'slot';
+    row.innerHTML = `<span class="num">${i+1}</span><input type="file" accept="video/*,image/*" data-slot="${i}"><span class="clear" data-clear="${i}">✕</span>`;
+    wrap.appendChild(row);
+  }
+  wrap.querySelectorAll('input[type=file]').forEach(inp=>{
+    inp.addEventListener('change', e=> loadSlot(Number(inp.dataset.slot), e.target.files[0]));
+  });
+  wrap.querySelectorAll('[data-clear]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const i = Number(btn.dataset.clear);
+      slots[i] = null;
+      refreshLayouts();
+      drawFrame();
+    });
+  });
+}
+buildSlots();
+
+function loadSlot(index, file){
+  if(!file) return;
+  const isVideo = file.type.startsWith('video');
+  const el = isVideo ? document.createElement('video') : new Image();
+  const url = URL.createObjectURL(file);
+  if(isVideo){
+    el.muted = false; el.playsInline = true; el.loop = false;
+    el.src = url;
+    el.addEventListener('loadedmetadata', ()=>{
+      slots[index] = { el, type:'video', loaded:true, url };
+      refreshLayouts();
+      drawFrame();
+      setStatus(`Slot ${index+1}: video loaded (${el.duration.toFixed(1)}s).`);
+    }, { once:true });
+  } else {
+    el.onload = ()=>{
+      slots[index] = { el, type:'image', loaded:true, url };
+      refreshLayouts();
+      drawFrame();
+      setStatus(`Slot ${index+1}: image loaded.`);
+    };
+    el.src = url;
+  }
+}
+
+function activeCount(){ return slots.filter(Boolean).length; }
+
+function refreshLayouts(){
+  const n = activeCount();
+  const pillWrap = document.getElementById('layoutPills');
+  pillWrap.innerHTML = '';
+  const opts = LAYOUT_OPTIONS[Math.min(4,Math.max(2,n||2))] || [];
+  opts.forEach((opt, idx)=>{
+    const p = document.createElement('div');
+    p.className = 'pill' + (idx===0?' active':'');
+    p.textContent = opt.label;
+    p.addEventListener('click', ()=>{
+      pillWrap.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+      p.classList.add('active');
+      currentLayout = opt;
+      document.getElementById('layoutReadout').textContent = opt.label.toUpperCase();
+      drawFrame();
+    });
+    pillWrap.appendChild(p);
+  });
+  currentLayout = opts[0] || null;
+  if(currentLayout) document.getElementById('layoutReadout').textContent = currentLayout.label.toUpperCase();
+
+  const canPlay = n >= 2 && currentLayout;
+  document.getElementById('playBtn').disabled = !canPlay;
+  document.getElementById('exportBtn').disabled = !canPlay;
+}
+
+document.getElementById('gapSlider').addEventListener('input', e=>{
+  gap = Number(e.target.value);
+  document.getElementById('gapVal').textContent = gap+'px';
+  drawFrame();
+});
+
+function drawMedia(media, x, y, w, h){
+  const el = media.el;
+  const mw = media.type==='video' ? el.videoWidth : el.naturalWidth;
+  const mh = media.type==='video' ? el.videoHeight : el.naturalHeight;
+  if(!mw || !mh) return;
+  const scale = Math.max(w/mw, h/mh); // cover
+  const dw = mw*scale, dh = mh*scale;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x,y,w,h);
+  ctx.clip();
+  ctx.drawImage(el, x+(w-dw)/2, y+(h-dh)/2, dw, dh);
+  ctx.restore();
+}
+
+function drawFrame(){
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,W,H);
+  const active = slots.filter(Boolean);
+  if(active.length < 2 || !currentLayout){
+    ctx.fillStyle = '#5a5f68';
+    ctx.font = '500 28px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Load 2–4 clips to preview', W/2, H/2);
+    ctx.textAlign = 'left';
+    return;
+  }
+  currentLayout.cells.slice(0, active.length).forEach((c, i)=>{
+    const x = c[0]*W + gap/2, y = c[1]*H + gap/2;
+    const w = c[2]*W - gap, h = c[3]*H - gap;
+    drawMedia(active[i], x, y, w, h);
+  });
+}
+
+let raf, playing = false;
+
+document.getElementById('playBtn').addEventListener('click', ()=>{
+  const active = slots.filter(Boolean).filter(s=>s.type==='video');
+  if(playing){
+    active.forEach(s=>s.el.pause());
+    cancelAnimationFrame(raf);
+    playing = false;
+    document.getElementById('playBtn').textContent = '▶ Play preview';
+  } else {
+    active.forEach(s=>{ s.el.currentTime = 0; s.el.play(); });
+    playing = true;
+    document.getElementById('playBtn').textContent = '⏸ Pause preview';
+    (function loop(){ drawFrame(); raf = requestAnimationFrame(loop); })();
+  }
+});
+
+async function setupMixedAudio(videoEls){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  mixDest = audioCtx.createMediaStreamDestination();
+  videoEls.forEach(v=>{
+    try{
+      const src = audioCtx.createMediaElementSource(v);
+      src.connect(mixDest);
+      src.connect(audioCtx.destination); // still audible during export
+    }catch(err){ /* element already routed or no audio track — skip */ }
+  });
+  return mixDest.stream;
+}
+
+document.getElementById('exportBtn').addEventListener('click', async ()=>{
+  const active = slots.filter(Boolean);
+  if(active.length < 2 || !currentLayout) return;
+  if(!('captureStream' in canvas)){
+    setStatus('This browser does not support canvas.captureStream — try Chrome, Edge, or Firefox.');
+    return;
+  }
+  const exportBtn = document.getElementById('exportBtn');
+  const playBtn = document.getElementById('playBtn');
+  exportBtn.disabled = true; playBtn.disabled = true;
+  document.getElementById('recBadge').classList.add('on');
+
+  const videoEls = active.filter(s=>s.type==='video').map(s=>s.el);
+  videoEls.forEach(v=>{ v.pause(); v.currentTime = 0; });
+  await new Promise(r=>setTimeout(r,100));
+
+  const canvasStream = canvas.captureStream(30);
+  let tracks = [...canvasStream.getVideoTracks()];
+  try{
+    const audioStream = await setupMixedAudio(videoEls);
+    tracks = tracks.concat(audioStream.getAudioTracks());
+  }catch(err){ /* proceed video-only if audio mixing unsupported */ }
+  const combined = new MediaStream(tracks);
+
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+  const rec = new MediaRecorder(combined, { mimeType: mime, videoBitsPerSecond: 10_000_000 });
+  const chunks = [];
+  rec.ondataavailable = e=>{ if(e.data.size) chunks.push(e.data); };
+  rec.onstop = ()=>{
+    cancelAnimationFrame(raf);
+    const blob = new Blob(chunks, {type:'video/webm'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'split-screen.webm';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+    exportBtn.disabled = false; playBtn.disabled = false;
+    document.getElementById('recBadge').classList.remove('on');
+    document.getElementById('progressBar').style.width = '0%';
+    playing = false;
+    document.getElementById('playBtn').textContent = '▶ Play preview';
+    setStatus('Export complete — split-screen.webm downloaded.');
+    drawFrame();
+  };
+
+  // duration = longest video, or 5s fallback for all-image sets
+  const durations = videoEls.map(v=>v.duration).filter(d=>isFinite(d));
+  const maxDur = durations.length ? Math.max(...durations) : 5;
+
+  rec.start();
+  videoEls.forEach(v=>v.play());
+  const startedAt = performance.now();
+  (function exportLoop(){
+    drawFrame();
+    const elapsed = (performance.now()-startedAt)/1000;
+    document.getElementById('progressBar').style.width = Math.min(100,(elapsed/maxDur)*100)+'%';
+    const t = Math.floor(elapsed);
+    document.getElementById('recTime').textContent = `${Math.floor(t/60)}:${String(t%60).padStart(2,'0')}`;
+    if(elapsed < maxDur){ raf = requestAnimationFrame(exportLoop); }
+    else { videoEls.forEach(v=>v.pause()); rec.stop(); }
+  })();
+  setStatus(`Recording export — runs for ${maxDur.toFixed(1)}s (length of the longest clip).`);
+});
+
+function setStatus(msg){ document.getElementById('statusNote').textContent = msg; }
+
+drawFrame();
+</script>
+</body>
+</html>

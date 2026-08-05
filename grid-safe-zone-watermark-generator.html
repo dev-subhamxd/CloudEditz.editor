@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grid &amp; Safe-Zone Watermark Generator — CloudEditz Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0B0D; --bg-panel:#15171B; --bg-panel-2:#1C1F24; --line:#282C33;
+    --text:#ECEAE4; --muted:#8A8F98; --accent:#FF4A3D; --safe:#6BFF8B;
+    --mono:'IBM Plex Mono',monospace; --display:'Space Grotesk',sans-serif; --body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);}
+  a{color:inherit;}
+  header.suite-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(10,11,13,.92);backdrop-filter:blur(8px);z-index:50;flex-wrap:wrap;}
+  .brand{font-family:var(--display);font-weight:700;letter-spacing:.02em;display:flex;align-items:center;gap:10px;font-size:15px;text-decoration:none;}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  nav.reel{display:flex;gap:4px;font-family:var(--mono);font-size:11px;flex-wrap:wrap;}
+  nav.reel a{padding:6px 10px;border-radius:4px;color:var(--muted);text-decoration:none;border:1px solid transparent;white-space:nowrap;}
+  nav.reel a:hover{color:var(--text);border-color:var(--line);background:var(--bg-panel);}
+  nav.reel a.active{color:var(--safe);border-color:var(--line);background:var(--bg-panel);}
+  main{max-width:1180px;margin:0 auto;padding:36px 28px 10px;}
+  .eyebrow{font-family:var(--mono);color:var(--safe);font-size:12px;letter-spacing:.15em;text-transform:uppercase;}
+  h1{font-family:var(--display);font-size:clamp(26px,4vw,40px);margin:6px 0 10px;line-height:1.1;}
+  .sub{color:var(--muted);max-width:62ch;line-height:1.6;margin-bottom:32px;font-size:14.5px;}
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start;}
+  @media (max-width:860px){.stage{grid-template-columns:1fr;}}
+  .viewport-wrap{position:sticky; top:80px;}
+  @media (max-width:860px){.viewport-wrap{position:static;}}
+  .viewport{position:relative;border-radius:3px;overflow:hidden;
+    background:repeating-conic-gradient(#20232a 0% 25%,#171920 0% 50%) 0 0/22px 22px;
+    aspect-ratio:9/16; max-width:340px; margin:0 auto; border:1px solid var(--line);}
+  .viewport canvas{width:100%;height:100%;display:block;}
+  .frame-corners span{position:absolute;width:20px;height:20px;border-color:var(--safe);pointer-events:none;}
+  .frame-corners span:nth-child(1){top:8px;left:8px;border-top:2px solid;border-left:2px solid;}
+  .frame-corners span:nth-child(2){top:8px;right:8px;border-top:2px solid;border-right:2px solid;}
+  .frame-corners span:nth-child(3){bottom:8px;left:8px;border-bottom:2px solid;border-left:2px solid;}
+  .frame-corners span:nth-child(4){bottom:8px;right:8px;border-bottom:2px solid;border-right:2px solid;}
+  .readout{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:10px;padding:0 2px;}
+  .readout .safe{color:var(--safe);}
+  .panel{background:var(--bg-panel);border:1px solid var(--line);border-radius:6px;padding:20px;}
+  .control-group{margin-bottom:20px;}
+  .control-group:last-child{margin-bottom:0;}
+  label.ctl-label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px;}
+  label.ctl-label b{color:var(--text);font-weight:500;}
+  input[type=range]{width:100%;accent-color:var(--accent);}
+  select,input[type=color]{background:var(--bg-panel-2);border:1px solid var(--line);color:var(--text);border-radius:4px;padding:8px 10px;font-family:var(--body);width:100%;font-size:13px;}
+  .pill-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .pill{flex:1;min-width:90px;text-align:center;padding:9px 10px;border:1px solid var(--line);border-radius:20px;font-family:var(--mono);font-size:11.5px;cursor:pointer;color:var(--muted);background:var(--bg-panel-2);transition:.15s;}
+  .pill:hover{color:var(--text);}
+  .pill.active{border-color:var(--safe);color:var(--safe);background:rgba(107,255,139,.08);}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;}
+  .switch{position:relative;width:38px;height:20px;background:var(--bg-panel-2);border:1px solid var(--line);border-radius:20px;cursor:pointer;}
+  .switch i{position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:.15s;}
+  .switch.on{background:rgba(107,255,139,.12);border-color:var(--safe);}
+  .switch.on i{left:19px;background:var(--safe);}
+  .btn{width:100%;background:var(--accent);color:#fff;border:none;padding:12px 16px;border-radius:4px;font-family:var(--display);font-weight:700;font-size:13.5px;cursor:pointer;letter-spacing:.02em;}
+  .btn:hover{filter:brightness(1.08);}
+  .btn.secondary{background:transparent;border:1px solid var(--line);color:var(--text);margin-top:10px;}
+  .btn.secondary:hover{border-color:var(--safe);color:var(--safe);}
+  .note{font-family:var(--mono);font-size:10.5px;color:var(--muted);line-height:1.6;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;}
+  footer{font-family:var(--mono);font-size:11px;color:var(--muted);padding:26px 28px 40px;border-top:1px solid var(--line);margin-top:44px;max-width:1180px;margin-left:auto;margin-right:auto;}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;}
+  .legend span{font-family:var(--mono);font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .legend i{width:10px;height:10px;border-radius:2px;display:inline-block;border:1.5px solid var(--safe);}
+</style>
+</head>
+<body>
+
+<header class="suite-bar">
+  <a class="brand" href="index.html"><span class="dot"></span> CLOUDEDITZ TOOLS</a>
+  <nav class="reel">
+    <a class="active" href="grid-safe-zone-watermark-generator.html">01 Safe-Zone Grid</a>
+    <a href="auto-aspect-canvas-padder.html">02 Aspect Padder</a>
+    <a href="split-screen-layout-builder.html">03 Split-Screen</a>
+    <a href="cinematic-letterbox-overlay.html">04 Letterbox</a>
+    <a href="frame-exact-watermarking-tool.html">05 Watermark</a>
+  </nav>
+</header>
+
+<main>
+  <div class="eyebrow">Tool 01 / 05 — Overlay Export</div>
+  <h1>Grid &amp; Safe-Zone Watermark Generator</h1>
+  <p class="sub">Preview a transparent overlay of each platform's like/comment/share column and caption zone, so you know exactly where it's safe to put text before you export. Everything renders locally in your browser.</p>
+
+  <div class="stage">
+    <div class="viewport-wrap">
+      <div class="viewport" id="viewport">
+        <canvas id="previewCanvas" width="1080" height="1920"></canvas>
+        <div class="frame-corners"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="readout">
+        <span>1080 × 1920 · 9:16</span>
+        <span class="safe" id="platformReadout">TIKTOK</span>
+      </div>
+      <div class="legend">
+        <span><i style="border-style:solid;"></i> UI element (avoid)</span>
+        <span><i style="border-style:dashed;"></i> Caption safe zone</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="control-group">
+        <label class="ctl-label">Platform</label>
+        <div class="pill-group" id="platformPills">
+          <div class="pill active" data-platform="tiktok">TikTok</div>
+          <div class="pill" data-platform="reels">IG Reels</div>
+          <div class="pill" data-platform="shorts">YT Shorts</div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="ctl-label">Guide opacity <b id="opacityVal">70%</b></label>
+        <input type="range" id="opacitySlider" min="10" max="100" value="70">
+      </div>
+
+      <div class="control-group">
+        <label class="ctl-label">Guide color</label>
+        <input type="color" id="guideColor" value="#6bff8b">
+      </div>
+
+      <div class="control-group">
+        <div class="toggle-row">
+          <label class="ctl-label" style="margin-bottom:0;">Show labels</label>
+          <div class="switch on" id="labelToggle"><i></i></div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="toggle-row">
+          <label class="ctl-label" style="margin-bottom:0;">Show caption safe zone</label>
+          <div class="switch on" id="captionToggle"><i></i></div>
+        </div>
+      </div>
+
+      <button class="btn" id="exportPng">Export transparent PNG</button>
+      <button class="btn secondary" id="exportWebm">Export WebM overlay</button>
+
+      <div class="note" id="statusNote">Ready. PNG exports keep true alpha transparency for use as an overlay track in your editor.</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Nothing you load or export here leaves your device — rendering happens entirely on-canvas, client-side. Safe-zone positions are approximate reference guides based on common platform UI layouts and may shift slightly with app updates.
+</footer>
+
+<script>
+const canvas = document.getElementById('previewCanvas');
+const ctx = canvas.getContext('2d', { alpha: true });
+const W = canvas.width, H = canvas.height;
+
+const state = {
+  platform: 'tiktok',
+  opacity: 0.7,
+  color: '#6bff8b',
+  labels: true,
+  caption: true
+};
+
+// Approximate safe-zone geometry per platform, in fractions of W/H
+const LAYOUTS = {
+  tiktok: {
+    name: 'TIKTOK',
+    icons: [
+      {x:.855,y:.535,w:.11,h:.075,label:'Profile'},
+      {x:.855,y:.615,w:.11,h:.065,label:'Like'},
+      {x:.855,y:.685,w:.11,h:.065,label:'Comment'},
+      {x:.855,y:.755,w:.11,h:.065,label:'Bookmark'},
+      {x:.855,y:.825,w:.11,h:.065,label:'Share'},
+      {x:.855,y:.895,w:.11,h:.06,label:'Sound disc'},
+    ],
+    caption: {x:.04,y:.795,w:.72,h:.14,label:'Caption / username'},
+    topBar: {x:.0,y:.0,w:1,h:.07,label:'Top nav'}
+  },
+  reels: {
+    name:'IG REELS',
+    icons:[
+      {x:.86,y:.50,w:.1,h:.075,label:'Profile'},
+      {x:.86,y:.575,w:.1,h:.065,label:'Like'},
+      {x:.86,y:.645,w:.1,h:.065,label:'Comment'},
+      {x:.86,y:.715,w:.1,h:.065,label:'Share'},
+      {x:.86,y:.785,w:.1,h:.065,label:'More'},
+      {x:.87,y:.855,w:.08,h:.055,label:'Audio'},
+    ],
+    caption:{x:.04,y:.80,w:.72,h:.135,label:'Caption / audio'},
+    topBar:{x:.0,y:.0,w:1,h:.065,label:'Top nav'}
+  },
+  shorts:{
+    name:'YT SHORTS',
+    icons:[
+      {x:.855,y:.47,w:.11,h:.07,label:'Like'},
+      {x:.855,y:.545,w:.11,h:.06,label:'Dislike'},
+      {x:.855,y:.61,w:.11,h:.07,label:'Comment'},
+      {x:.855,y:.685,w:.11,h:.07,label:'Share'},
+      {x:.855,y:.76,w:.11,h:.075,label:'Remix'},
+      {x:.865,y:.84,w:.09,h:.06,label:'Channel'},
+    ],
+    caption:{x:.04,y:.79,w:.68,h:.11,label:'Title / channel'},
+    topBar:{x:.0,y:.0,w:1,h:.10,label:'Subscribe strip'}
+  }
+};
+
+function hexToRgb(hex){
+  const m = hex.replace('#','');
+  return [parseInt(m.slice(0,2),16), parseInt(m.slice(2,4),16), parseInt(m.slice(4,6),16)];
+}
+
+function draw(transparentExport){
+  ctx.clearRect(0,0,W,H);
+  const layout = LAYOUTS[state.platform];
+  const [r,g,b] = hexToRgb(state.color);
+  const strokeColor = `rgba(${r},${g},${b},${state.opacity})`;
+  const fillColor = `rgba(${r},${g},${b},${state.opacity*0.12})`;
+
+  ctx.lineWidth = 4;
+  ctx.font = '600 26px Inter, sans-serif';
+  ctx.textBaseline = 'middle';
+
+  // top bar
+  ctx.strokeStyle = strokeColor;
+  ctx.setLineDash([]);
+  ctx.fillStyle = fillColor;
+  const tb = layout.topBar;
+  ctx.fillRect(tb.x*W, tb.y*H, tb.w*W, tb.h*H);
+  ctx.strokeRect(tb.x*W, tb.y*H, tb.w*W, tb.h*H);
+  if(state.labels){
+    ctx.fillStyle = strokeColor;
+    ctx.fillText(tb.label, 24, tb.h*H/2);
+  }
+
+  // icon column
+  layout.icons.forEach(ic=>{
+    const x=ic.x*W, y=ic.y*H, w=ic.w*W, h=ic.h*H;
+    ctx.fillStyle = fillColor;
+    ctx.strokeStyle = strokeColor;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x,y,w,h,16) : ctx.rect(x,y,w,h);
+    ctx.fill();
+    ctx.stroke();
+    if(state.labels){
+      ctx.fillStyle = strokeColor;
+      ctx.font = '500 20px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(ic.label, x+w/2, y+h+22);
+      ctx.textAlign = 'left';
+    }
+  });
+
+  // caption safe zone
+  if(state.caption){
+    const c = layout.caption;
+    ctx.setLineDash([14,10]);
+    ctx.strokeStyle = strokeColor;
+    ctx.fillStyle = `rgba(${r},${g},${b},${state.opacity*0.06})`;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(c.x*W,c.y*H,c.w*W,c.h*H);
+    ctx.fillRect(c.x*W,c.y*H,c.w*W,c.h*H);
+    ctx.setLineDash([]);
+    if(state.labels){
+      ctx.font = '600 24px Inter, sans-serif';
+      ctx.fillStyle = strokeColor;
+      ctx.fillText(c.label, c.x*W+16, c.y*H+34);
+    }
+  }
+
+  // platform tag (skip on transparent export to keep it a pure UI guide)
+  if(!transparentExport){
+    ctx.font = '700 22px "Space Grotesk", sans-serif';
+    ctx.fillStyle = strokeColor;
+    ctx.fillText(layout.name + ' SAFE ZONE', 24, H-40);
+  }
+}
+
+function render(){ draw(false); }
+
+document.getElementById('platformPills').addEventListener('click', e=>{
+  const pill = e.target.closest('.pill');
+  if(!pill) return;
+  document.querySelectorAll('#platformPills .pill').forEach(p=>p.classList.remove('active'));
+  pill.classList.add('active');
+  state.platform = pill.dataset.platform;
+  document.getElementById('platformReadout').textContent = LAYOUTS[state.platform].name;
+  render();
+});
+
+document.getElementById('opacitySlider').addEventListener('input', e=>{
+  state.opacity = e.target.value/100;
+  document.getElementById('opacityVal').textContent = e.target.value+'%';
+  render();
+});
+document.getElementById('guideColor').addEventListener('input', e=>{ state.color = e.target.value; render(); });
+
+function bindSwitch(id, key){
+  const el = document.getElementById(id);
+  el.addEventListener('click', ()=>{
+    state[key] = !state[key];
+    el.classList.toggle('on', state[key]);
+    render();
+  });
+}
+bindSwitch('labelToggle','labels');
+bindSwitch('captionToggle','caption');
+
+document.getElementById('exportPng').addEventListener('click', ()=>{
+  draw(true); // redraw without opaque tag text, alpha preserved
+  canvas.toBlob(blob=>{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${state.platform}-safe-zone-guide.png`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    render();
+    setStatus('PNG exported with true alpha transparency.');
+  }, 'image/png');
+});
+
+document.getElementById('exportWebm').addEventListener('click', async ()=>{
+  const btn = document.getElementById('exportWebm');
+  if(!('captureStream' in canvas)){
+    setStatus('This browser does not support canvas.captureStream — try Chrome, Edge, or Firefox.');
+    return;
+  }
+  btn.disabled = true;
+  setStatus('Recording 3s loop… WebM alpha support varies by browser/codec, so this bakes onto a dark background for reference.');
+  draw(true);
+  const stream = canvas.captureStream(30);
+  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+  const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 });
+  const chunks = [];
+  rec.ondataavailable = e=>{ if(e.data.size) chunks.push(e.data); };
+  rec.onstop = ()=>{
+    const blob = new Blob(chunks, {type:'video/webm'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${state.platform}-safe-zone-guide.webm`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    btn.disabled = false;
+    render();
+    setStatus('WebM exported. For guaranteed transparency, use the PNG export as an overlay in your editor.');
+  };
+  rec.start();
+  setTimeout(()=>rec.stop(), 3000);
+});
+
+function setStatus(msg){ document.getElementById('statusNote').textContent = msg; }
+
+render();
+</script>
+</body>
+</html>
