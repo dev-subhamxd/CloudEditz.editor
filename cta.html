@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CTA Builder — CloudEditz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1116;
+    --panel:#171A21;
+    --panel-2:#1D212A;
+    --line:#262B36;
+    --text:#E9EBF0;
+    --muted:#8A91A3;
+    --accent:#FF6A3D;      /* tally-light orange */
+    --accent2:#39FF88;     /* chroma-key green, used functionally */
+    --danger:#FF4D5E;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    min-height:100vh;
+  }
+  ::selection{ background:var(--accent); color:#12141A; }
+
+  .app{ max-width:1400px; margin:0 auto; padding:28px 24px 60px; }
+
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    padding-bottom:18px; margin-bottom:22px; flex-wrap:wrap; gap:14px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 0 3px rgba(255,106,61,0.15);
+  }
+  .brand-text{ font-family:var(--font-mono); font-size:12px; letter-spacing:.14em; color:var(--muted); text-transform:uppercase; }
+  h1{
+    font-family:var(--font-display); font-weight:700; font-size:28px;
+    margin:6px 0 4px; letter-spacing:-0.01em;
+  }
+  .sub{ color:var(--muted); font-size:14px; max-width:520px; line-height:1.5; }
+  .module-tag{
+    font-family:var(--font-mono); font-size:11px; color:var(--muted);
+    border:1px solid var(--line); border-radius:20px; padding:6px 12px;
+    letter-spacing:.06em;
+  }
+
+  .workspace{
+    display:grid;
+    grid-template-columns:230px 1fr 300px;
+    gap:18px;
+    align-items:start;
+  }
+  @media (max-width: 980px){
+    .workspace{ grid-template-columns:1fr; }
+  }
+
+  .rail{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px;
+  }
+  .rail h2{
+    font-family:var(--font-mono); font-size:11px; text-transform:uppercase;
+    letter-spacing:.12em; color:var(--muted); margin:0 0 12px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .rail h2::before{ content:''; width:5px; height:5px; background:var(--accent); border-radius:1px; }
+
+  /* Template gallery */
+  .tpl-list{ display:flex; flex-direction:column; gap:6px; }
+  .tpl-item{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 10px; border-radius:9px; border:1px solid transparent;
+    cursor:pointer; background:transparent;
+    transition:background .15s, border-color .15s;
+  }
+  .tpl-item:hover{ background:var(--panel-2); }
+  .tpl-item.active{ background:var(--panel-2); border-color:var(--accent); }
+  .tpl-num{
+    font-family:var(--font-mono); font-size:10px; color:var(--muted);
+    width:18px; flex-shrink:0;
+  }
+  .tpl-item.active .tpl-num{ color:var(--accent); }
+  .tpl-name{ font-size:12.5px; font-weight:500; line-height:1.3; }
+  .tpl-desc{ display:none; }
+
+  /* Viewfinder / preview */
+  .viewfinder-panel{ display:flex; flex-direction:column; gap:12px; }
+  .viewfinder{
+    position:relative;
+    background:#000;
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .vf-topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px;
+    background:linear-gradient(180deg, rgba(0,0,0,.55), transparent);
+    position:absolute; top:0; left:0; right:0; z-index:3;
+    font-family:var(--font-mono); font-size:11px; color:#D7DAE3;
+  }
+  .rec{ display:flex; align-items:center; gap:6px; }
+  .rec-dot{
+    width:7px; height:7px; border-radius:50%; background:var(--danger);
+    animation:pulse 1.4s infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+  .timecode{ letter-spacing:.05em; }
+  .res-tag{ color:var(--muted); }
+
+  .vf-canvas-wrap{
+    width:100%; aspect-ratio:16/9; position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .vf-canvas-wrap.checker{
+    background-image:
+      linear-gradient(45deg,#26292f 25%,transparent 25%),
+      linear-gradient(-45deg,#26292f 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#26292f 75%),
+      linear-gradient(-45deg,transparent 75%,#26292f 75%);
+    background-size:22px 22px;
+    background-position:0 0,0 11px,11px -11px,-11px 0px;
+    background-color:#15171c;
+  }
+  .vf-canvas-wrap.green{ background:#00FF6A; }
+  #preview{ width:100%; height:100%; display:block; }
+
+  .vf-corners span{
+    position:absolute; width:18px; height:18px; z-index:3;
+    border-color:rgba(255,255,255,.5);
+  }
+  .vf-corners .tl{ top:34px; left:10px; border-top:2px solid; border-left:2px solid; }
+  .vf-corners .tr{ top:34px; right:10px; border-top:2px solid; border-right:2px solid; }
+  .vf-corners .bl{ bottom:10px; left:10px; border-bottom:2px solid; border-left:2px solid; }
+  .vf-corners .br{ bottom:10px; right:10px; border-bottom:2px solid; border-right:2px solid; }
+
+  .vf-footer{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; flex-wrap:wrap;
+  }
+  .bgmode{
+    display:flex; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:4px; gap:4px;
+  }
+  .bgmode button{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.04em;
+    padding:7px 12px; border-radius:7px; border:none; cursor:pointer;
+    background:transparent; color:var(--muted);
+  }
+  .bgmode button.active{ background:var(--panel-2); color:var(--text); }
+  .bgmode button.active.green-active{ color:var(--accent2); }
+  .hint{ font-size:11.5px; color:var(--muted); }
+
+  /* Controls rail */
+  .field{ margin-bottom:16px; }
+  .field label{
+    display:block; font-size:11px; font-family:var(--font-mono);
+    text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:7px;
+  }
+  .field input[type=text]{
+    width:100%; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--text); border-radius:8px; padding:10px 11px; font-size:13.5px;
+    font-family:var(--font-body);
+  }
+  .field input[type=text]:focus{ outline:none; border-color:var(--accent); }
+
+  .swatches{ display:flex; gap:8px; flex-wrap:wrap; }
+  .swatch{
+    width:26px; height:26px; border-radius:50%; cursor:pointer;
+    border:2px solid transparent; position:relative;
+  }
+  .swatch.active{ border-color:#fff; }
+
+  .btn-download{
+    width:100%; background:var(--accent); color:#171000; border:none;
+    font-family:var(--font-display); font-weight:700; font-size:13.5px;
+    padding:13px; border-radius:9px; cursor:pointer; letter-spacing:.01em;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:transform .1s, filter .15s;
+  }
+  .btn-download:hover{ filter:brightness(1.08); }
+  .btn-download:active{ transform:scale(.98); }
+  .btn-download.green{ background:var(--accent2); }
+
+  .divider{ height:1px; background:var(--line); margin:18px 0; }
+
+  footer.note{
+    margin-top:28px; text-align:center; color:var(--muted);
+    font-size:11.5px; font-family:var(--font-mono);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div>
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-text">CloudEditz · Toolkit</div>
+      </div>
+      <h1>End Screen / CTA Builder</h1>
+      <div class="sub">Pick a template, drop in your handle, export a ready-made overlay on a transparent or green-screen background. No re-animating "Subscribe" buttons from scratch.</div>
+    </div>
+    <div class="module-tag">Module 04 · Overlay Generator</div>
+  </header>
+
+  <div class="workspace">
+
+    <!-- Template gallery -->
+    <aside class="rail rail-templates">
+      <h2>Templates</h2>
+      <div class="tpl-list" id="tplList"></div>
+    </aside>
+
+    <!-- Viewfinder -->
+    <main class="viewfinder-panel">
+      <div class="viewfinder">
+        <div class="vf-topbar">
+          <div class="rec"><div class="rec-dot"></div><span>PREVIEW</span></div>
+          <div class="timecode" id="timecode">00:00:00:00</div>
+          <div class="res-tag">1920×1080</div>
+        </div>
+        <div class="vf-canvas-wrap checker" id="canvasWrap">
+          <canvas id="preview" width="1920" height="1080"></canvas>
+        </div>
+        <div class="vf-corners"><span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span></div>
+      </div>
+      <div class="vf-footer">
+        <div class="bgmode">
+          <button id="modeTransparent" class="active">Alpha / Transparent</button>
+          <button id="modeGreen">Green Screen</button>
+        </div>
+        <div class="hint">Alpha exports true PNG transparency · Green exports on #00FF6A</div>
+      </div>
+    </main>
+
+    <!-- Controls -->
+    <aside class="rail rail-controls">
+      <h2>Overlay Text</h2>
+      <div class="field">
+        <label>Channel / Handle</label>
+        <input type="text" id="handleInput" maxlength="28" value="@yourhandle">
+      </div>
+      <div class="field">
+        <label>Tagline</label>
+        <input type="text" id="taglineInput" maxlength="40" value="New videos every week">
+      </div>
+
+      <div class="field">
+        <label>Accent Color</label>
+        <div class="swatches" id="swatches"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="btn-download" id="downloadBtn">↓ Download PNG</button>
+    </aside>
+
+  </div>
+
+  <footer class="note">Renders at 1920×1080 · right-click the preview isn't needed — use the download button for a clean-alpha PNG</footer>
+</div>
+
+<script>
+// ---------- State ----------
+const state = {
+  templateIndex: 0,
+  handle: '@yourhandle',
+  tagline: 'New videos every week',
+  accent: '#FF3B3B',
+  bgMode: 'transparent' // 'transparent' | 'green'
+};
+
+const ACCENTS = ['#FF3B3B', '#FF6A3D', '#39FF88', '#4F8CFF', '#C24FFF', '#FFD23B', '#FF4FA3', '#3BE8FF'];
+
+// ---------- Canvas helpers ----------
+function roundRect(ctx, x, y, w, h, r){
+  if (typeof r === 'number') r = {tl:r, tr:r, br:r, bl:r};
+  ctx.beginPath();
+  ctx.moveTo(x + r.tl, y);
+  ctx.lineTo(x + w - r.tr, y);
+  ctx.arcTo(x + w, y, x + w, y + r.tr, r.tr);
+  ctx.lineTo(x + w, y + h - r.br);
+  ctx.arcTo(x + w, y + h, x + w - r.br, y + h, r.br);
+  ctx.lineTo(x + r.bl, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r.bl, r.bl);
+  ctx.lineTo(x, y + r.tl);
+  ctx.arcTo(x, y, x + r.tl, y, r.tl);
+  ctx.closePath();
+}
+
+function drawBell(ctx, cx, cy, size, color, ringPhase){
+  ctx.save();
+  ctx.translate(cx, cy);
+  const rock = Math.sin(ringPhase) * 0.12;
+  ctx.rotate(rock);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -size*0.55);
+  ctx.bezierCurveTo(size*0.42, -size*0.55, size*0.42, size*0.28, size*0.55, size*0.42);
+  ctx.lineTo(-size*0.55, size*0.42);
+  ctx.bezierCurveTo(-size*0.42, size*0.28, -size*0.42, -size*0.55, 0, -size*0.55);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(0, size*0.55, size*0.12, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawThumb(ctx, cx, cy, size, color){
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(-size*0.15, -size*0.5);
+  ctx.lineTo(size*0.1, -size*0.5);
+  ctx.lineTo(size*0.28, -size*0.05);
+  ctx.lineTo(size*0.28, size*0.5);
+  ctx.lineTo(-size*0.45, size*0.5);
+  ctx.lineTo(-size*0.45, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function chip(ctx, x, y, w, h, label, color){
+  roundRect(ctx, x, y, w, h, h/2);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fill();
+  roundRect(ctx, x, y, w, h, h/2);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = color;
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = '600 30px Space Grotesk, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, x + w/2, y + h/2 + 2);
+}
+
+// ---------- Templates ----------
+// each draw(ctx, W, H, s) where s = {handle, tagline, accent, t}
+const templates = [
+  {
+    name: 'Bell & Subscribe',
+    draw(ctx, W, H, s){
+      const cx = W/2, cy = H/2;
+      drawBell(ctx, cx, cy - 170, 130, '#fff', s.t*3);
+      roundRect(ctx, cx - 230, cy - 20, 460, 100, 50);
+      ctx.fillStyle = s.accent; ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 46px Space Grotesk, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('SUBSCRIBE', cx, cy + 33);
+      ctx.font = '600 40px Inter, sans-serif';
+      ctx.fillText(s.handle, cx, cy + 130);
+      ctx.font = '400 26px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillText(s.tagline, cx, cy + 175);
+    }
+  },
+  {
+    name: 'Follow Us — Social Bar',
+    draw(ctx, W, H, s){
+      const labels = ['IG','TT','X','YT'];
+      const chipW = 130, chipH = 66, gap = 20;
+      const totalW = labels.length*chipW + (labels.length-1)*gap;
+      let x = W/2 - totalW/2;
+      const y = H/2 - 60;
+      labels.forEach(l => { chip(ctx, x, y, chipW, chipH, l, s.accent); x += chipW + gap; });
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '700 44px Space Grotesk, sans-serif';
+      ctx.fillText('FOLLOW US', W/2, y + 150);
+      ctx.font = '500 30px Inter, sans-serif';
+      ctx.fillStyle = s.accent;
+      ctx.fillText(s.handle, W/2, y + 200);
+    }
+  },
+  {
+    name: 'End Card Outro',
+    draw(ctx, W, H, s){
+      roundRect(ctx, 0, H - 220, W, 220, 0);
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fill();
+      ctx.strokeStyle = s.accent; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(0, H-220); ctx.lineTo(W, H-220); ctx.stroke();
+
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 56px Space Grotesk, sans-serif';
+      ctx.fillText('THANKS FOR WATCHING', 90, H - 140);
+      ctx.font = '500 30px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillText(s.tagline, 90, H - 90);
+
+      const bw = 380, bh = 90;
+      roundRect(ctx, W - bw - 90, H - 155, bw, bh, 45);
+      ctx.fillStyle = s.accent; ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      ctx.font = '700 34px Space Grotesk, sans-serif';
+      ctx.fillText(s.handle, W - bw/2 - 90, H - 110);
+    }
+  },
+  {
+    name: 'Notification Reminder',
+    draw(ctx, W, H, s){
+      const cx = W/2, cy = H/2 - 40;
+      const pulse = (Math.sin(s.t*2) + 1) / 2;
+      for(let i=0;i<3;i++){
+        const r = 90 + i*40 + pulse*20;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(${hexToRgb(s.accent)},${0.35 - i*0.1})`;
+        ctx.lineWidth = 4; ctx.stroke();
+      }
+      drawBell(ctx, cx, cy, 150, s.accent, s.t*4);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '700 42px Space Grotesk, sans-serif';
+      ctx.fillText('TURN ON NOTIFICATIONS', cx, cy + 190);
+      ctx.font = '500 28px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillText(s.handle, cx, cy + 235);
+    }
+  },
+  {
+    name: 'Lower-Third Handle',
+    draw(ctx, W, H, s){
+      const x = 80, y = H - 190, w = 620, h = 100;
+      roundRect(ctx, x, y, 10, h, {tl:6,bl:6,tr:0,br:0});
+      ctx.fillStyle = s.accent; ctx.fill();
+      roundRect(ctx, x+10, y, w, h, {tl:0,bl:0,tr:10,br:10});
+      ctx.fillStyle = 'rgba(10,10,14,0.72)'; ctx.fill();
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 40px Space Grotesk, sans-serif';
+      ctx.fillText(s.handle, x + 40, y + 40);
+      ctx.font = '400 24px Inter, sans-serif';
+      ctx.fillStyle = s.accent;
+      ctx.fillText(s.tagline, x + 40, y + 78);
+    }
+  },
+  {
+    name: 'Like, Comment, Share',
+    draw(ctx, W, H, s){
+      const cy = H/2 - 20;
+      drawThumb(ctx, W/2 - 220, cy, 130, s.accent);
+      ctx.fillStyle = s.accent;
+      ctx.beginPath();
+      const hx = W/2, hy = cy;
+      ctx.moveTo(hx, hy+45);
+      ctx.bezierCurveTo(hx-90,hy-40, hx-40,hy-110, hx,hy-45);
+      ctx.bezierCurveTo(hx+40,hy-110, hx+90,hy-40, hx, hy+45);
+      ctx.fill();
+      roundRect(ctx, W/2 + 140, cy - 55, 150, 100, 20);
+      ctx.fillStyle = 'transparent'; ctx.strokeStyle = s.accent; ctx.lineWidth=6; ctx.stroke();
+      ctx.fillStyle = s.accent; ctx.font = '700 30px Space Grotesk, sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('...', W/2 + 215, cy - 5);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 40px Space Grotesk, sans-serif';
+      ctx.fillText('LIKE · COMMENT · SHARE', W/2, cy + 150);
+      ctx.font = '500 28px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.fillText(s.handle, W/2, cy + 195);
+    }
+  },
+  {
+    name: 'Channel Badge',
+    draw(ctx, W, H, s){
+      const cx = W/2 - 200, cy = H/2;
+      ctx.beginPath(); ctx.arc(cx, cy, 100, 0, Math.PI*2);
+      ctx.fillStyle = s.accent; ctx.fill();
+      const initials = (s.handle.replace('@','').slice(0,2) || 'YT').toUpperCase();
+      ctx.fillStyle = '#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font = '700 70px Space Grotesk, sans-serif';
+      ctx.fillText(initials, cx, cy + 6);
+
+      ctx.textAlign = 'left';
+      ctx.font = '700 44px Space Grotesk, sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(s.handle, cx + 150, cy - 20);
+      ctx.font = '400 26px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText(s.tagline, cx + 150, cy + 22);
+
+      const bw=210, bh=64;
+      roundRect(ctx, cx + 150, cy + 50, bw, bh, 32);
+      ctx.fillStyle = s.accent; ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign='center';
+      ctx.font = '700 26px Space Grotesk, sans-serif';
+      ctx.fillText('SUBSCRIBE', cx + 150 + bw/2, cy + 50 + bh/2 + 2);
+    }
+  },
+  {
+    name: 'Neon Outro Banner',
+    draw(ctx, W, H, s){
+      const cy = H/2;
+      ctx.save();
+      ctx.shadowColor = s.accent; ctx.shadowBlur = 30;
+      ctx.strokeStyle = s.accent; ctx.lineWidth = 4;
+      roundRect(ctx, W/2 - 480, cy - 130, 960, 260, 18);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle = '#fff';
+      ctx.font = '700 52px Space Grotesk, sans-serif';
+      ctx.fillText('NEW VIDEOS EVERY WEEK', W/2, cy - 40);
+      ctx.font = '700 40px Space Grotesk, sans-serif';
+      ctx.fillStyle = s.accent;
+      ctx.fillText(s.handle, W/2, cy + 30);
+      ctx.font = '400 24px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText(s.tagline, W/2, cy + 80);
+    }
+  }
+];
+
+function hexToRgb(hex){
+  const m = hex.replace('#','');
+  const bigint = parseInt(m,16);
+  return `${(bigint>>16)&255},${(bigint>>8)&255},${bigint&255}`;
+}
+
+// ---------- Rendering ----------
+const canvas = document.getElementById('preview');
+const ctx = canvas.getContext('2d');
+let startTime = performance.now();
+
+function render(){
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  if (state.bgMode === 'green'){
+    ctx.fillStyle = '#00FF6A';
+    ctx.fillRect(0,0,W,H);
+  }
+
+  const t = (performance.now() - startTime) / 1000;
+  templates[state.templateIndex].draw(ctx, W, H, {
+    handle: state.handle || '@yourhandle',
+    tagline: state.tagline || '',
+    accent: state.accent,
+    t
+  });
+}
+
+function loop(){
+  render();
+  updateTimecode();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function updateTimecode(){
+  const t = (performance.now() - startTime) / 1000;
+  const h = String(Math.floor(t/3600)).padStart(2,'0');
+  const m = String(Math.floor((t%3600)/60)).padStart(2,'0');
+  const sec = String(Math.floor(t%60)).padStart(2,'0');
+  const f = String(Math.floor((t%1)*24)).padStart(2,'0');
+  document.getElementById('timecode').textContent = `${h}:${m}:${sec}:${f}`;
+}
+
+// ---------- UI wiring ----------
+const tplList = document.getElementById('tplList');
+templates.forEach((tpl, i) => {
+  const el = document.createElement('div');
+  el.className = 'tpl-item' + (i === 0 ? ' active' : '');
+  el.innerHTML = `<span class="tpl-num">${String(i+1).padStart(2,'0')}</span><span class="tpl-name">${tpl.name}</span>`;
+  el.addEventListener('click', () => {
+    state.templateIndex = i;
+    document.querySelectorAll('.tpl-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  });
+  tplList.appendChild(el);
+});
+
+const swatchWrap = document.getElementById('swatches');
+ACCENTS.forEach((color, i) => {
+  const el = document.createElement('div');
+  el.className = 'swatch' + (i === 0 ? ' active' : '');
+  el.style.background = color;
+  el.addEventListener('click', () => {
+    state.accent = color;
+    document.querySelectorAll('.swatch').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    updateDownloadBtnColor();
+  });
+  swatchWrap.appendChild(el);
+});
+
+document.getElementById('handleInput').addEventListener('input', e => {
+  state.handle = e.target.value;
+});
+document.getElementById('taglineInput').addEventListener('input', e => {
+  state.tagline = e.target.value;
+});
+
+const canvasWrap = document.getElementById('canvasWrap');
+const btnTransparent = document.getElementById('modeTransparent');
+const btnGreen = document.getElementById('modeGreen');
+
+btnTransparent.addEventListener('click', () => {
+  state.bgMode = 'transparent';
+  canvasWrap.classList.add('checker'); canvasWrap.classList.remove('green');
+  btnTransparent.classList.add('active'); btnGreen.classList.remove('active','green-active');
+  updateDownloadBtnColor();
+});
+btnGreen.addEventListener('click', () => {
+  state.bgMode = 'green';
+  canvasWrap.classList.remove('checker'); canvasWrap.classList.add('green');
+  btnGreen.classList.add('active','green-active'); btnTransparent.classList.remove('active');
+  updateDownloadBtnColor();
+});
+
+function updateDownloadBtnColor(){
+  const btn = document.getElementById('downloadBtn');
+  btn.classList.toggle('green', state.bgMode === 'green');
+}
+
+document.getElementById('downloadBtn').addEventListener('click', () => {
+  render(); // ensure latest frame
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const slug = templates[state.templateIndex].name.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    const modeTag = state.bgMode === 'green' ? 'greenscreen' : 'alpha';
+    a.href = url;
+    a.download = `cta-${slug}-${modeTag}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+});
+</script>
+</body>
+</html>
