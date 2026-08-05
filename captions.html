@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Captions — CloudEditz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0c10; --bg-raised:#12151b; --field:#0d1015; --hairline:#22262e;
+    --white:#f4f6f8; --muted:#8b93a1; --muted-2:#565d68;
+    --violet:#A78BFA; --teal:#2DD4BF; --coral:#fb7185; --amber:#FBBF24;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--white);font-family:'IBM Plex Mono',monospace;-webkit-font-smoothing:antialiased;}
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse 60% 40% at 15% 0%, rgba(167,139,250,0.08), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 100% 10%, rgba(45,212,191,0.05), transparent 60%);
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:0 24px 90px;position:relative;z-index:1;}
+
+  header{padding:28px 0 0;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--violet);box-shadow:0 0 12px 2px rgba(167,139,250,0.7);animation:pulse 2.2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(0.8);}}
+  .brand .tag{font-size:11px;color:var(--muted-2);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--hairline);padding:3px 8px;border-radius:20px;margin-left:4px;}
+  header a.back{color:var(--muted);text-decoration:none;font-size:12.5px;border:1px solid var(--hairline);border-radius:20px;padding:6px 14px;transition:color .15s ease,border-color .15s ease;}
+  header a.back:hover{color:var(--violet);border-color:var(--violet);}
+
+  .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--violet);display:flex;align-items:center;gap:10px;margin:44px 0 16px;}
+  .eyebrow::before{content:"";width:16px;height:1px;background:var(--violet);}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:clamp(28px,4.4vw,42px);line-height:1.1;letter-spacing:-.01em;max-width:20ch;}
+  p.lead{margin-top:16px;font-size:14.5px;line-height:1.7;color:var(--muted);max-width:60ch;}
+  p.lead b{color:var(--white);font-weight:500;}
+
+  .dropzone{margin-top:32px;border:1.5px dashed var(--hairline);border-radius:14px;padding:40px 24px;text-align:center;cursor:pointer;transition:border-color .18s ease, background .18s ease;}
+  .dropzone:hover, .dropzone.drag{border-color:var(--violet);background:rgba(167,139,250,0.04);}
+  .dropzone .glyph{font-size:28px;margin-bottom:12px;}
+  .dropzone .title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;color:var(--white);}
+  .dropzone .sub{margin-top:6px;font-size:12px;color:var(--muted-2);}
+  .dropzone input{display:none;}
+
+  .track-card{display:none;margin-top:24px;background:var(--bg-raised);border:1px solid var(--hairline);border-radius:12px;padding:20px 20px 22px;}
+  .track-card.show{display:block;}
+  .track-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px;}
+  .track-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px;color:var(--white);word-break:break-word;}
+  .track-meta{margin-top:5px;font-size:11.5px;color:var(--muted-2);}
+  .swap-btn{flex-shrink:0;font-size:11.5px;color:var(--muted);background:none;border:1px solid var(--hairline);border-radius:20px;padding:6px 12px;cursor:pointer;transition:color .15s ease,border-color .15s ease;}
+  .swap-btn:hover{color:var(--violet);border-color:var(--violet);}
+  audio{width:100%;margin-top:4px;filter:invert(0.9) hue-rotate(220deg);border-radius:8px;}
+
+  /* language fields */
+  .lang-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;}
+  @media (max-width:520px){.lang-row{grid-template-columns:1fr;}}
+  .field label{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+  .field label .opt{color:var(--muted-2);text-transform:none;letter-spacing:0;}
+  .field select{
+    width:100%;background:var(--field);border:1px solid var(--hairline);border-radius:8px;
+    padding:12px 12px;color:var(--white);font-family:'IBM Plex Mono',monospace;font-size:13.5px;
+    outline:none;transition:border-color .15s ease;appearance:none;
+    background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6"><path d="M0 0l5 6 5-6z" fill="%238b93a1"/></svg>');
+    background-repeat:no-repeat;background-position:right 14px center;
+  }
+  .field select:focus{border-color:var(--violet);}
+
+  button.generate{
+    width:100%;margin-top:20px;padding:14px 0;border-radius:8px;border:none;
+    background:linear-gradient(90deg,#A78BFA,#818CF8);color:#0d0a1f;
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:14px;
+    cursor:pointer;transition:transform .12s ease, filter .12s ease;
+  }
+  button.generate:hover{filter:brightness(1.08);}
+  button.generate:active{transform:scale(0.99);}
+  button.generate[disabled]{opacity:.45;cursor:not-allowed;filter:none;}
+
+  .progress-wrap{display:none;margin-top:18px;}
+  .progress-wrap.show{display:block;}
+  .progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--violet);margin-bottom:8px;}
+  .progress-track{height:6px;border-radius:4px;background:var(--field);border:1px solid var(--hairline);overflow:hidden;}
+  .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#A78BFA,#2DD4BF);transition:width .25s ease;}
+  .progress-note{margin-top:8px;font-size:11px;color:var(--muted-2);}
+
+  /* live caption overlay */
+  .caption-stage{
+    display:none;margin-top:18px;min-height:64px;
+    background:var(--field);border:1px solid var(--hairline);border-radius:10px;
+    display:none;align-items:center;justify-content:center;text-align:center;
+    padding:16px 18px;
+  }
+  .caption-stage.show{display:flex;}
+  .caption-stage span{font-size:15px;line-height:1.5;color:var(--white);font-family:'Space Grotesk',sans-serif;font-weight:500;}
+  .caption-stage span.empty{color:var(--muted-2);font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:12.5px;}
+
+  .results{display:none;margin-top:22px;}
+  .results.show{display:block;}
+  .list-heading{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);}
+  .cap-actions{display:flex;gap:8px;}
+  .cap-actions button{
+    font-size:11px;color:var(--muted);background:none;border:1px solid var(--hairline);
+    border-radius:20px;padding:5px 12px;cursor:pointer;transition:color .15s ease,border-color .15s ease;
+  }
+  .cap-actions button:hover{color:var(--teal);border-color:var(--teal);}
+
+  .cap-list{max-height:320px;overflow-y:auto;border:1px solid var(--hairline);border-radius:10px;}
+  .cap-row{display:flex;gap:12px;padding:11px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--hairline);transition:background .12s ease;}
+  .cap-row:last-child{border-bottom:none;}
+  .cap-row:hover{background:rgba(167,139,250,0.06);}
+  .cap-row.active{background:rgba(167,139,250,0.14);}
+  .cap-row .t{color:var(--muted-2);width:78px;flex-shrink:0;font-size:11.5px;padding-top:1px;}
+  .cap-row .txt{color:var(--white);line-height:1.5;}
+
+  .empty-note{text-align:center;padding:30px 10px;color:var(--muted-2);font-size:12.5px;}
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--hairline);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="dot"></span>CloudEditz<span class="tag">Captions</span></div>
+    <a class="back" href="index.html">← Home</a>
+  </header>
+
+  <div class="eyebrow">Auto captions</div>
+  <h1>Upload audio, get synced captions — in any language.</h1>
+  <p class="lead">
+    Transcribes speech straight in your browser, then optionally translates every line into
+    the language you want. Nothing gets uploaded to a server — the speech and translation
+    models run <b>locally in this tab</b>, so the first run downloads them once and caches
+    them for next time.
+  </p>
+
+  <div class="dropzone" id="dropzone">
+    <div class="glyph">📝</div>
+    <div class="title">Click to upload, or drag audio/video in</div>
+    <div class="sub">MP3, WAV, M4A, MP4 — works best with clear speech</div>
+    <input type="file" id="fileInput" accept="audio/*,video/*">
+  </div>
+
+  <div class="track-card" id="trackCard">
+    <div class="track-head">
+      <div>
+        <div class="track-name" id="trackName">—</div>
+        <div class="track-meta" id="trackMeta">—</div>
+      </div>
+      <button class="swap-btn" id="swapBtn">Change file</button>
+    </div>
+
+    <audio id="player" controls></audio>
+
+    <div class="lang-row">
+      <div class="field">
+        <label>Spoken language <span class="opt">(optional)</span></label>
+        <select id="spokenLang">
+          <option value="">Auto-detect</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Captions language <span class="opt">(required)</span></label>
+        <select id="outputLang" required>
+          <option value="original">Keep original language (no translation)</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="generate" id="generateBtn">Generate captions</button>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label"><span id="progressStage">Loading…</span><span id="progressPct">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-note" id="progressNote">First time here? The speech model is a one-time download of a couple hundred MB.</div>
+    </div>
+
+    <div class="caption-stage" id="captionStage"><span class="empty" id="captionStageText">Captions will appear here while the audio plays</span></div>
+
+    <div class="results" id="results">
+      <div class="list-heading">
+        <span id="capCount">0 lines</span>
+        <div class="cap-actions">
+          <button id="downloadSrt">Download .srt</button>
+          <button id="downloadVtt">Download .vtt</button>
+        </div>
+      </div>
+      <div class="cap-list" id="capList"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+/* -------- language table: label, Whisper decoder name, NLLB Flores-200 code -------- */
+const LANGUAGES = [
+  { label: "English",             whisper: "english",    nllb: "eng_Latn" },
+  { label: "Spanish",             whisper: "spanish",    nllb: "spa_Latn" },
+  { label: "French",              whisper: "french",     nllb: "fra_Latn" },
+  { label: "German",              whisper: "german",     nllb: "deu_Latn" },
+  { label: "Italian",             whisper: "italian",    nllb: "ita_Latn" },
+  { label: "Portuguese",          whisper: "portuguese", nllb: "por_Latn" },
+  { label: "Russian",             whisper: "russian",    nllb: "rus_Cyrl" },
+  { label: "Japanese",            whisper: "japanese",   nllb: "jpn_Jpan" },
+  { label: "Korean",              whisper: "korean",     nllb: "kor_Hang" },
+  { label: "Chinese (Simplified)",whisper: "chinese",    nllb: "zho_Hans" },
+  { label: "Arabic",              whisper: "arabic",     nllb: "ara_Arab" },
+  { label: "Hindi",               whisper: "hindi",      nllb: "hin_Deva" },
+  { label: "Bengali",             whisper: "bengali",    nllb: "ben_Beng" },
+  { label: "Turkish",             whisper: "turkish",    nllb: "tur_Latn" },
+  { label: "Vietnamese",          whisper: "vietnamese", nllb: "vie_Latn" },
+  { label: "Thai",                whisper: "thai",       nllb: "tha_Thai" },
+  { label: "Indonesian",          whisper: "indonesian", nllb: "ind_Latn" },
+  { label: "Dutch",               whisper: "dutch",      nllb: "nld_Latn" },
+  { label: "Polish",              whisper: "polish",     nllb: "pol_Latn" },
+  { label: "Swedish",             whisper: "swedish",    nllb: "swe_Latn" },
+  { label: "Ukrainian",           whisper: "ukrainian",  nllb: "ukr_Cyrl" },
+  { label: "Greek",               whisper: "greek",      nllb: "ell_Grek" },
+  { label: "Hebrew",              whisper: "hebrew",     nllb: "heb_Hebr" },
+  { label: "Persian",             whisper: "persian",    nllb: "pes_Arab" },
+  { label: "Urdu",                whisper: "urdu",       nllb: "urd_Arab" },
+  { label: "Punjabi",             whisper: "punjabi",    nllb: "pan_Guru" },
+  { label: "Tamil",               whisper: "tamil",      nllb: "tam_Taml" },
+  { label: "Telugu",              whisper: "telugu",     nllb: "tel_Telu" },
+  { label: "Malay",               whisper: "malay",      nllb: "zsm_Latn" },
+  { label: "Filipino (Tagalog)",  whisper: "tagalog",    nllb: "tgl_Latn" },
+];
+
+const spokenSel = document.getElementById('spokenLang');
+const outputSel = document.getElementById('outputLang');
+LANGUAGES.forEach(l => {
+  spokenSel.insertAdjacentHTML('beforeend', `<option value="${l.whisper}">${l.label}</option>`);
+  outputSel.insertAdjacentHTML('beforeend', `<option value="${l.whisper}">${l.label}</option>`);
+});
+outputSel.value = "english";
+
+/* -------- elements -------- */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const trackCard = document.getElementById('trackCard');
+const trackName = document.getElementById('trackName');
+const trackMeta = document.getElementById('trackMeta');
+const player = document.getElementById('player');
+const swapBtn = document.getElementById('swapBtn');
+const generateBtn = document.getElementById('generateBtn');
+const progressWrap = document.getElementById('progressWrap');
+const progressStage = document.getElementById('progressStage');
+const progressPct = document.getElementById('progressPct');
+const progressFill = document.getElementById('progressFill');
+const progressNote = document.getElementById('progressNote');
+const captionStage = document.getElementById('captionStage');
+const captionStageText = document.getElementById('captionStageText');
+const resultsEl = document.getElementById('results');
+const capList = document.getElementById('capList');
+const capCount = document.getElementById('capCount');
+
+let currentFile = null;
+let cues = []; // { start, end, text }
+let transcriber = null;
+let translator = null;
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+swapBtn.addEventListener('click', () => fileInput.click());
+
+function handleFile(file){
+  currentFile = file;
+  trackCard.classList.add('show');
+  resultsEl.classList.remove('show');
+  captionStage.classList.remove('show');
+  progressWrap.classList.remove('show');
+  cues = [];
+  trackName.textContent = file.name;
+  trackMeta.textContent = `${(file.size / (1024*1024)).toFixed(2)} MB`;
+  player.src = URL.createObjectURL(file);
+  generateBtn.disabled = false;
+  generateBtn.textContent = "Generate captions";
+}
+
+function setProgress(stage, pct, note){
+  progressWrap.classList.add('show');
+  progressStage.textContent = stage;
+  progressPct.textContent = `${Math.round(pct)}%`;
+  progressFill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+  if (note) progressNote.textContent = note;
+}
+
+function fmtTime(sec){
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${h > 0 ? h + ':' : ''}${String(m).padStart(2,'0')}:${s.toFixed(2).padStart(5,'0')}`;
+}
+function fmtShort(sec){
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+generateBtn.addEventListener('click', async () => {
+  if (!currentFile) return;
+  generateBtn.disabled = true;
+  generateBtn.textContent = "Working…";
+  resultsEl.classList.remove('show');
+  captionStage.classList.remove('show');
+
+  const spoken = spokenSel.value || undefined;
+  const outputVal = outputSel.value;
+  const keepOriginal = outputVal === "original";
+  const wantEnglish = outputVal === "english";
+
+  try{
+    // 1. load / reuse the speech model
+    if (!transcriber){
+      setProgress("Loading speech model", 0, "One-time download — cached in this browser after.");
+      transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
+        progress_callback: (p) => {
+          if (p.status === 'progress'){
+            setProgress(`Loading speech model (${p.file || ''})`, p.progress || 0);
+          }
+        }
+      });
+    }
+
+    // 2. transcribe (or translate-to-English if a translation target was chosen)
+    setProgress("Transcribing audio", 15, "Listening to the whole track — longer files take longer.");
+    const audioUrl = URL.createObjectURL(currentFile);
+    const task = keepOriginal ? 'transcribe' : 'translate'; // 'translate' = Whisper's built-in "to English" task
+    const output = await transcriber(audioUrl, {
+      return_timestamps: true,
+      chunk_length_s: 30,
+      stride_length_s: 5,
+      task,
+      language: spoken,
+    });
+
+    let chunks = (output.chunks || []).map(c => ({
+      start: c.timestamp[0] || 0,
+      end: c.timestamp[1] ?? (c.timestamp[0] || 0) + 2,
+      text: c.text.trim()
+    })).filter(c => c.text.length);
+
+    // 3. translate English → target, only if a non-English target was requested
+    if (!keepOriginal && !wantEnglish){
+      const target = LANGUAGES.find(l => l.whisper === outputVal);
+      setProgress("Loading translation model", 55, "Second one-time download for translation.");
+      if (!translator){
+        translator = await pipeline('translation', 'Xenova/nllb-200-distilled-600M', {
+          progress_callback: (p) => {
+            if (p.status === 'progress'){
+              setProgress(`Loading translation model (${p.file || ''})`, 55 + (p.progress || 0) * 0.35);
+            }
+          }
+        });
+      }
+      setProgress("Translating captions", 90, `Translating each line into ${target.label}.`);
+      for (let i = 0; i < chunks.length; i++){
+        const res = await translator(chunks[i].text, { src_lang: 'eng_Latn', tgt_lang: target.nllb });
+        chunks[i].text = res[0].translation_text;
+      }
+    }
+
+    cues = chunks;
+    setProgress("Done", 100, "Captions ready.");
+    renderResults();
+  }catch(err){
+    console.error(err);
+    setProgress("Something went wrong", 0, err.message || "Try a shorter clip or a different file.");
+  }
+
+  generateBtn.disabled = false;
+  generateBtn.textContent = "Generate captions";
+});
+
+function renderResults(){
+  resultsEl.classList.add('show');
+  captionStage.classList.add('show');
+  capCount.textContent = `${cues.length} line${cues.length === 1 ? '' : 's'}`;
+  capList.innerHTML = '';
+
+  if (!cues.length){
+    capList.innerHTML = '<div class="empty-note">No speech detected in this file.</div>';
+    return;
+  }
+
+  cues.forEach((c, idx) => {
+    const row = document.createElement('div');
+    row.className = 'cap-row';
+    row.dataset.idx = idx;
+    row.innerHTML = `<span class="t">${fmtShort(c.start)}</span><span class="txt">${escapeHtml(c.text)}</span>`;
+    row.addEventListener('click', () => { player.currentTime = c.start; player.play(); });
+    capList.appendChild(row);
+  });
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* live caption overlay + active row highlight while playing */
+player.addEventListener('timeupdate', () => {
+  if (!cues.length) return;
+  const t = player.currentTime;
+  const idx = cues.findIndex(c => t >= c.start && t <= c.end);
+  const rows = capList.querySelectorAll('.cap-row');
+  rows.forEach(r => r.classList.remove('active'));
+  if (idx >= 0){
+    captionStageText.className = '';
+    captionStageText.textContent = cues[idx].text;
+    if (rows[idx]) rows[idx].classList.add('active');
+  } else {
+    captionStageText.className = 'empty';
+    captionStageText.textContent = 'Captions will appear here while the audio plays';
+  }
+});
+
+/* -------- subtitle file export -------- */
+function srtTime(sec){
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = Math.floor(sec%60);
+  const ms = Math.round((sec - Math.floor(sec)) * 1000);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`;
+}
+function vttTime(sec){ return srtTime(sec).replace(',', '.'); }
+
+function download(filename, text){
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+document.getElementById('downloadSrt').addEventListener('click', () => {
+  if (!cues.length) return;
+  const body = cues.map((c, i) => `${i+1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c.text}\n`).join('\n');
+  download('captions.srt', body);
+});
+document.getElementById('downloadVtt').addEventListener('click', () => {
+  if (!cues.length) return;
+  const body = 'WEBVTT\n\n' + cues.map(c => `${vttTime(c.start)} --> ${vttTime(c.end)}\n${c.text}\n`).join('\n');
+  download('captions.vtt', body);
+});
+</script>
+
+</body>
+</html>
